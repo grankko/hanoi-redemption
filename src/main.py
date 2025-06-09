@@ -4,6 +4,7 @@ Tests AI reasoning models' ability to solve Towers of Hanoi puzzles.
 """
 
 import sys
+import argparse
 from typing import Optional
 
 # Try absolute import first, fallback to relative
@@ -253,29 +254,53 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
 def main():
     """Main application entry point."""
+    parser = argparse.ArgumentParser(
+        description="Test AI reasoning models on Towers of Hanoi puzzles"
+    )
+    parser.add_argument(
+        "num_disks", 
+        type=int, 
+        nargs="?",
+        help="Number of disks (3-8 recommended)"
+    )
+    parser.add_argument(
+        "--auto", 
+        action="store_true", 
+        help="Run in auto mode (no pauses between moves)"
+    )
+    
+    args = parser.parse_args()
+    
     print("🗼 TOWERS OF HANOI - AI REASONING TEST 🗼")
     print("Testing AI models' ability to solve Towers of Hanoi puzzles")
     print("(Research validation after claims about reasoning model limitations)")
     print()
     
-    # Get number of disks from user
-    while True:
-        try:
-            num_disks = input("Enter number of disks (3-8 recommended): ").strip()
-            num_disks = int(num_disks)
-            if 1 <= num_disks <= 10:
-                break
-            else:
-                print("Please enter a number between 1 and 10")
-        except ValueError:
-            print("Please enter a valid number")
-    
-    # Ask for auto mode
-    auto_mode = input("Auto mode (no pauses between moves)? (y/n): ").lower().startswith('y')
+    # Get number of disks
+    if args.num_disks:
+        num_disks = args.num_disks
+        if not (1 <= num_disks <= 10):
+            print("Error: Number of disks must be between 1 and 10")
+            sys.exit(1)
+    else:
+        # Interactive mode if no argument provided
+        while True:
+            try:
+                num_disks = input("Enter number of disks (3-8 recommended): ").strip()
+                num_disks = int(num_disks)
+                if 1 <= num_disks <= 10:
+                    break
+                else:
+                    print("Please enter a number between 1 and 10")
+            except ValueError:
+                print("Please enter a valid number")
+            except (EOFError, KeyboardInterrupt):
+                print("\nGoodbye!")
+                sys.exit(0)
     
     # Run the test
     tester = HanoiAITester(num_disks)
-    results = tester.run_test(auto_mode)
+    results = tester.run_test(auto_mode=args.auto)
     
     if 'error' not in results:
         print(f"\n💾 Test completed for {num_disks} disks")

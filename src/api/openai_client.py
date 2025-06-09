@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 
 # Try absolute import first, fallback to relative
 try:
-    from src.schemas import HanoiMoveResponse, HanoiGameState
+    from src.schemas import HanoiMoveResponse
 except ImportError:
-    from ..schemas import HanoiMoveResponse, HanoiGameState
+    from ..schemas import HanoiMoveResponse
 
 
 class HanoiAIClient:

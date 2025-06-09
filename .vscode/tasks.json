@@ -62,11 +62,11 @@
             }
         },
         {
-            "label": "Test Components",
+            "label": "Run Hanoi AI Test (Auto Mode)",
             "type": "shell",
             "command": "python",
-            "args": ["test_components.py"],
-            "group": "test",
+            "args": ["-m", "src.main", "3", "--auto"],
+            "group": "build",
             "presentation": {
                 "echo": true,
                 "reveal": "always",

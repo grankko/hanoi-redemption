@@ -38,10 +38,11 @@
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Debug Test Components",
+            "name": "Debug Hanoi AI Test (Auto Mode)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/test_components.py",
+            "module": "src.main",
+            "args": ["3", "--auto"],
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {
