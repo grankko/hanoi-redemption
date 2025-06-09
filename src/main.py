@@ -96,10 +96,10 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             self.game.state.tower_c
         ], self.move_count)
         
-        # Calculate optimal move budget
+        # Calculate move budget (minimum possible moves for this puzzle)
         optimal_move_count = (2 ** self.num_disks) - 1
         
-        print(f"📊 Optimal solution requires {optimal_move_count} moves")
+        print(f"📊 Minimum possible moves for {self.num_disks} disks: {optimal_move_count}")
         print(f"🤖 AI has budget of {optimal_move_count} moves to solve this puzzle")
         print(f"🧠 Testing AI reasoning capability...")
         print()
@@ -169,9 +169,9 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         
         # Check if AI exceeded budget
         if self.move_count >= optimal_move_count and not self.game.is_solved():
-            print(f"\n💸 AI EXCEEDED OPTIMAL MOVE BUDGET!")
-            print(f"   Used {self.move_count} moves, optimal is {optimal_move_count}")
-            print("   AI failed to solve optimally")
+            print(f"\n💸 AI EXCEEDED MOVE BUDGET!")
+            print(f"   Used {self.move_count} moves, budget was {optimal_move_count}")
+            print("   AI failed to solve within budget")
         
         # Test completed - show results
         return self._generate_test_results(optimal_move_count)
@@ -188,15 +188,12 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             success = False
             status = "FAILURE"
         
-        efficiency = (optimal_total / self.move_count * 100) if self.move_count > 0 else 0
-        
         results = {
             'num_disks': self.num_disks,
             'success': success,
             'status': status,
             'total_moves': self.move_count,
-            'optimal_moves': optimal_total,
-            'efficiency_percent': round(efficiency, 1),
+            'budget_moves': optimal_total,
             'exceeded_budget': self.move_count > optimal_total,
             'move_details': self.test_results
         }
@@ -219,24 +216,23 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         print(f"🗼 Disks: {results['num_disks']}")
         print(f"📊 Status: {results['status']}")
         print(f"✅ Success: {'YES' if results['success'] else 'NO'}")
-        print(f"🎯 Total moves: {results['total_moves']}")
-        print(f"⭐ Optimal moves: {results['optimal_moves']}")
-        print(f"⚡ Efficiency: {results['efficiency_percent']}%")
-        print(f"💰 Budget exceeded: {'YES' if results['exceeded_budget'] else 'NO'}")
+        print(f"🎯 Moves used: {results['total_moves']}")
+        print(f"💰 Budget allowed: {results['budget_moves']}")
+        print(f"💸 Budget exceeded: {'YES' if results['exceeded_budget'] else 'NO'}")
         
         if results['success']:
-            print("\n🏆 SUCCESS! AI solved within the optimal move budget!")
-            print(f"   Used {results['total_moves']} moves (budget: {results['optimal_moves']})")
+            print("\n🏆 SUCCESS! AI solved within the move budget!")
+            print(f"   Used {results['total_moves']}/{results['budget_moves']} moves")
         else:
             print(f"\n💔 FAILURE! AI did not solve within budget")
             if results['exceeded_budget']:
-                print(f"   Used {results['total_moves']} moves, budget was {results['optimal_moves']}")
+                print(f"   Used {results['total_moves']} moves, budget was {results['budget_moves']}")
             else:
                 print(f"   AI made invalid move or couldn't complete puzzle")
         
         # Display final tower state if completed
         if results['success']:
-            self.display.display_completion(results['total_moves'], results['optimal_moves'])
+            self.display.display_completion(results['total_moves'], results['budget_moves'])
 
     def _export_results(self, results: dict) -> str:
         """Export test results to a timestamped JSON file."""
@@ -324,7 +320,7 @@ def main():
     if 'error' not in results:
         print(f"\n💾 Test completed for {num_disks} disks")
         print(f"   Status: {results['status']}")
-        print(f"   Efficiency: {results['efficiency_percent']}%")
+        print(f"   Moves: {results['total_moves']}/{results['budget_moves']}")
 
 
 if __name__ == "__main__":

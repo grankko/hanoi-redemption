@@ -19,7 +19,7 @@ def test_budget_validation():
     # Create a tester instance (without initializing AI)
     tester = HanoiAITester(3)
     tester.test_results = []  # Initialize empty test results
-    optimal_moves = 7  # 2^3 - 1 = 7
+    budget_moves = 7  # 2^3 - 1 = 7
     
     # Test case 1: Completed within budget (SUCCESS)
     tester.game.reset()
@@ -29,7 +29,7 @@ def test_budget_validation():
     tester.game.state.tower_b = []
     tester.game.state.tower_c = [1, 2, 3]
     
-    results1 = tester._generate_test_results(optimal_moves)
+    results1 = tester._generate_test_results(budget_moves)
     print(f"✅ Test 1 - Solved in 7 moves (budget=7): {results1['status']} (expected: SUCCESS)")
     assert results1['status'] == "SUCCESS", f"Expected SUCCESS, got {results1['status']}"
     assert results1['success'] == True, f"Expected success=True, got {results1['success']}"
@@ -42,7 +42,7 @@ def test_budget_validation():
     tester.game.state.tower_b = []
     tester.game.state.tower_c = [1, 2, 3]
     
-    results2 = tester._generate_test_results(optimal_moves)
+    results2 = tester._generate_test_results(budget_moves)
     print(f"✅ Test 2 - Solved in 8 moves (budget=7): {results2['status']} (expected: FAILURE)")
     assert results2['status'] == "FAILURE", f"Expected FAILURE, got {results2['status']}"
     assert results2['success'] == False, f"Expected success=False, got {results2['success']}"
@@ -52,12 +52,12 @@ def test_budget_validation():
     tester.move_count = 6
     # Game not solved (towers not in final state)
     
-    results3 = tester._generate_test_results(optimal_moves)
+    results3 = tester._generate_test_results(budget_moves)
     print(f"✅ Test 3 - Not solved in 6 moves (budget=7): {results3['status']} (expected: FAILURE)")
     assert results3['status'] == "FAILURE", f"Expected FAILURE, got {results3['status']}"
     assert results3['success'] == False, f"Expected success=False, got {results3['success']}"
     
-    # Test case 4: Perfect optimal solution (SUCCESS)
+    # Test case 4: Perfect budget solution (SUCCESS)
     tester.game.reset()
     tester.move_count = 7
     # Manually set game to solved state
@@ -65,8 +65,8 @@ def test_budget_validation():
     tester.game.state.tower_b = []
     tester.game.state.tower_c = [1, 2, 3]
     
-    results4 = tester._generate_test_results(optimal_moves)
-    print(f"✅ Test 4 - Perfect solution (7/7 moves): {results4['status']} (expected: SUCCESS)")
+    results4 = tester._generate_test_results(budget_moves)
+    print(f"✅ Test 4 - Perfect budget usage (7/7 moves): {results4['status']} (expected: SUCCESS)")
     assert results4['status'] == "SUCCESS", f"Expected SUCCESS, got {results4['status']}"
     assert results4['success'] == True, f"Expected success=True, got {results4['success']}"
     
@@ -86,8 +86,9 @@ def main():
         print("\n✅ Budget validation logic is working correctly!")
         print("🎯 The inconsistency has been fixed:")
         print("   • Only 2 possible outcomes: SUCCESS or FAILURE")
-        print("   • SUCCESS: Solved within optimal move budget")
+        print("   • SUCCESS: Solved within move budget")
         print("   • FAILURE: Exceeded budget or didn't solve")
+        print("   • No efficiency metrics or optimal comparisons")
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
