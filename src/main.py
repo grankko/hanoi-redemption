@@ -59,26 +59,14 @@ class HanoiAITester:
             return None
     
     def _create_ai_prompt(self) -> str:
-        """Create a detailed prompt for the AI including turn number."""
+        """Create a simple game state description for the AI."""
         towers = self.game.state
         
-        prompt = f"""You are solving a {self.num_disks}-disk Towers of Hanoi puzzle.
+        prompt = f"""{self.num_disks}-disk Towers of Hanoi puzzle - Turn #{self.move_count + 1}
 
-Current state (Turn #{self.move_count + 1}):
 Tower A: {towers.tower_a if towers.tower_a else 'empty'}
 Tower B: {towers.tower_b if towers.tower_b else 'empty'}  
-Tower C: {towers.tower_c if towers.tower_c else 'empty'}
-
-Goal: Move all disks from Tower A to Tower C.
-
-Rules:
-1. Only move one disk at a time
-2. Only move the top disk from a tower
-3. Never place a larger disk on top of a smaller disk
-
-This is turn #{self.move_count + 1}. What is your next move?
-
-Please think carefully about the optimal strategy. The minimum number of moves to solve this puzzle is {2**self.num_disks - 1}."""
+Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
         return prompt
     
