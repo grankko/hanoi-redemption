@@ -2,7 +2,6 @@
 ASCII Art Display for Tower of Hanoi
 """
 import os
-import time
 from typing import List
 
 
@@ -90,9 +89,6 @@ class TowerDisplay:
             print(line)
         
         print()
-        
-        if pause:
-            time.sleep(1.2)  # Pause between moves
     
     def display_completion(self, total_moves: int, optimal_moves: int):
         """Display completion message."""

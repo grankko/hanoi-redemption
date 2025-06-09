@@ -5,6 +5,9 @@ Tests AI reasoning models' ability to solve Towers of Hanoi puzzles.
 
 import sys
 import argparse
+import json
+import os
+from datetime import datetime
 from typing import Optional
 
 # Try absolute import first, fallback to relative
@@ -34,6 +37,7 @@ class HanoiAITester:
         self.move_count = 0
         self.ai_correct_moves = 0
         self.test_results = []
+        self.previous_move = None  # Track previous move for context
         
     def initialize_ai(self) -> bool:
         """Initialize the AI client."""
@@ -60,7 +64,7 @@ class HanoiAITester:
             return None
     
     def _create_ai_prompt(self) -> str:
-        """Create a simple game state description for the AI."""
+        """Create a detailed game state description for the AI with previous move context."""
         towers = self.game.state
         
         prompt = f"""{self.num_disks}-disk Towers of Hanoi puzzle - Turn #{self.move_count + 1}
@@ -68,6 +72,10 @@ class HanoiAITester:
 Tower A: {towers.tower_a if towers.tower_a else 'empty'}
 Tower B: {towers.tower_b if towers.tower_b else 'empty'}  
 Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
+
+        # Add previous move context if this isn't the first move
+        if self.previous_move is not None:
+            prompt += f"\n\nPrevious move: {self.previous_move}"
 
         return prompt
     
@@ -165,6 +173,7 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 success = self.game.make_move(ai_move)
                 if success:
                     self.move_count += 1
+                    self.previous_move = ai_move  # Track previous move for context
                     
                     # Display updated state (no auto pause)
                     self.display.display_towers([
@@ -218,6 +227,12 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         }
         
         self._display_final_results(results)
+        
+        # Automatically export results to JSON file
+        exported_file = self._export_results(results)
+        if exported_file:
+            print(f"📄 Results exported to: {exported_file}")
+        
         return results
     
     def _display_final_results(self, results: dict):
@@ -250,7 +265,43 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         # Display final tower state if completed
         if results['success']:
             self.display.display_completion(results['total_moves'], results['optimal_moves'])
+        
+        # Export results to JSON file
+        self._export_results(results)
 
+    def _export_results(self, results: dict) -> str:
+        """Export test results to a timestamped JSON file."""
+        try:
+            # Create output directory if it doesn't exist
+            output_dir = "output"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Generate timestamp-based filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"hanoi_test_{self.num_disks}disks_{timestamp}.json"
+            filepath = os.path.join(output_dir, filename)
+            
+            # Add metadata to results
+            export_data = {
+                'timestamp': datetime.now().isoformat(),
+                'export_info': {
+                    'date': datetime.now().strftime("%Y-%m-%d"),
+                    'time': datetime.now().strftime("%H:%M:%S"),
+                    'disk_count': self.num_disks,
+                    'test_type': 'AI_reasoning_validation'
+                },
+                'results': results
+            }
+            
+            # Export to JSON file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False, default=str)
+            
+            print(f"📂 Results exported to: {filepath}")
+            return filepath
+        except Exception as e:
+            print(f"⚠️  Warning: Failed to export results: {e}")
+            return ""
 
 def main():
     """Main application entry point."""

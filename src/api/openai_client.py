@@ -37,7 +37,6 @@ class HanoiAIClient:
             raise ValueError("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
         
         self.client = OpenAI(api_key=api_key)
-        #self.model = "gpt-4o-2024-08-06"  # Model that supports structured outputs
         self.model = "o4-mini-2025-04-16"
     
     def get_next_move(self, game_state_description: str) -> HanoiMoveResponse:

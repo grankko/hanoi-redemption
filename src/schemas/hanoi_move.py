@@ -76,10 +76,11 @@ class HanoiMoveResponse(BaseModel):
     """
     Response from the AI containing a suggested move and reasoning.
     """
+    reasoning: str = Field(
+        description="Explanation of why this move was chosen"
+    )
     
     move: HanoiMove = Field(
         description="The suggested move to make"
     )
-    reasoning: str = Field(
-        description="Explanation of why this move was chosen"
-    )
+
