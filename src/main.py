@@ -13,12 +13,12 @@ from typing import Optional
 # Try absolute import first, fallback to relative
 try:
     from src.api import HanoiAIClient
-    from src.game import TowersOfHanoi, OptimalSolver
+    from src.game import TowersOfHanoi
     from src.schemas import HanoiMove
     from src.display import TowerDisplay
 except ImportError:
     from .api import HanoiAIClient
-    from .game import TowersOfHanoi, OptimalSolver
+    from .game import TowersOfHanoi
     from .schemas import HanoiMove
     from .display import TowerDisplay
 
@@ -31,11 +31,9 @@ class HanoiAITester:
     def __init__(self, num_disks: int):
         self.num_disks = num_disks
         self.game = TowersOfHanoi(num_disks)
-        self.optimal_solver = OptimalSolver(num_disks)
         self.display = TowerDisplay(num_disks)
         self.ai_client = None
         self.move_count = 0
-        self.ai_correct_moves = 0
         self.test_results = []
         self.previous_move = None  # Track previous move for context
         
@@ -79,21 +77,6 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
         return prompt
     
-    def validate_move(self, ai_move: HanoiMove) -> tuple[bool, bool]:
-        """
-        Validate AI move against game rules and optimal solution.
-        Returns (is_valid_move, is_optimal_move)
-        """
-        # Check if move is valid according to game rules
-        is_valid, error = self.game.is_valid_move(ai_move)
-        
-        # Check if move matches optimal solution
-        is_optimal = False
-        if is_valid:
-            is_optimal = self.optimal_solver.is_optimal_move(ai_move, self.move_count)
-        
-        return is_valid, is_optimal
-    
     def run_test(self, auto_mode: bool = False) -> dict:
         """
         Run the complete AI test.
@@ -113,17 +96,18 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             self.game.state.tower_c
         ], self.move_count)
         
-        # Get optimal solution for comparison
-        optimal_moves = self.optimal_solver.solve()
-        total_optimal_moves = len(optimal_moves)
+        # Calculate optimal move budget
+        optimal_move_count = (2 ** self.num_disks) - 1
         
-        print(f"📊 Optimal solution requires {total_optimal_moves} moves")
-        print(f"🤖 Testing AI reasoning capability...")
+        print(f"📊 Optimal solution requires {optimal_move_count} moves")
+        print(f"🤖 AI has budget of {optimal_move_count} moves to solve this puzzle")
+        print(f"🧠 Testing AI reasoning capability...")
         print()
         
         # Main game loop
-        while not self.game.is_solved() and self.move_count < total_optimal_moves * 2:
+        while not self.game.is_solved() and self.move_count < optimal_move_count:
             print(f"\n--- Turn #{self.move_count + 1} ---")
+            print(f"💰 Moves remaining in budget: {optimal_move_count - self.move_count}")
             
             # Get AI's move
             print("🤖 AI is thinking...")
@@ -133,38 +117,22 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 break
             ai_move, ai_reasoning = ai_move_result
             
-            print(f"🎯 AI suggests: {ai_move}")
+            print(f"🎯 AI suggests: Move disk from {ai_move.source_tower} to {ai_move.destination_tower}")
             print(f"💭 AI reasoning: {ai_reasoning}")
             
-            # Validate the move
-            is_valid, is_optimal = self.validate_move(ai_move)
+            # Validate the move (only check if it's valid, not optimal)
+            is_valid, error_msg = self.game.is_valid_move(ai_move)
             
-            # Get optimal move for comparison
-            try:
-                optimal_move = self.optimal_solver.get_next_optimal_move(self.move_count)
-                print(f"✅ Optimal move: {optimal_move}")
-            except IndexError:
-                optimal_move = None
-                print("⚠️  No more optimal moves available")
-            
-            # Display validation results
             if is_valid:
                 print("✅ AI move is VALID")
-                if is_optimal:
-                    print("🎯 AI move is OPTIMAL!")
-                    self.ai_correct_moves += 1
-                else:
-                    print("⚠️  AI move is SUBOPTIMAL")
             else:
-                print("❌ AI move is INVALID")
+                print(f"❌ AI move is INVALID: {error_msg}")
             
             # Record the result
             self.test_results.append({
                 'turn': self.move_count + 1,
-                'ai_move': ai_move,
-                'optimal_move': optimal_move,
+                'ai_move': {'source': ai_move.source_tower, 'destination': ai_move.destination_tower},
                 'is_valid': is_valid,
-                'is_optimal': is_optimal,
                 'ai_reasoning': ai_reasoning
             })
             
@@ -175,7 +143,7 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                     self.move_count += 1
                     self.previous_move = ai_move  # Track previous move for context
                     
-                    # Display updated state (no auto pause)
+                    # Display updated state
                     self.display.display_towers([
                         self.game.state.tower_a,
                         self.game.state.tower_b,
@@ -199,19 +167,27 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                     print("\n🛑 Test interrupted by user")
                     break
         
+        # Check if AI exceeded budget
+        if self.move_count >= optimal_move_count and not self.game.is_solved():
+            print(f"\n💸 AI EXCEEDED OPTIMAL MOVE BUDGET!")
+            print(f"   Used {self.move_count} moves, optimal is {optimal_move_count}")
+            print("   AI failed to solve optimally")
+        
         # Test completed - show results
-        return self._generate_test_results(total_optimal_moves)
+        return self._generate_test_results(optimal_move_count)
     
     def _generate_test_results(self, optimal_total: int) -> dict:
-        """Generate comprehensive test results."""
-        if self.game.is_solved():
+        """Generate comprehensive test results with strict budget-based validation."""
+        # Strict budget-based approach: only 2 outcomes
+        if self.game.is_solved() and self.move_count <= optimal_total:
+            # SUCCESS: Solved within the optimal move budget
             success = True
-            status = "COMPLETED"
+            status = "SUCCESS"
         else:
+            # FAILURE: Either didn't solve or exceeded budget
             success = False
-            status = "FAILED" if self.move_count < optimal_total * 2 else "EXCEEDED_LIMIT"
+            status = "FAILURE"
         
-        accuracy = (self.ai_correct_moves / self.move_count * 100) if self.move_count > 0 else 0
         efficiency = (optimal_total / self.move_count * 100) if self.move_count > 0 else 0
         
         results = {
@@ -220,9 +196,8 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             'status': status,
             'total_moves': self.move_count,
             'optimal_moves': optimal_total,
-            'ai_correct_moves': self.ai_correct_moves,
-            'accuracy_percent': round(accuracy, 1),
             'efficiency_percent': round(efficiency, 1),
+            'exceeded_budget': self.move_count > optimal_total,
             'move_details': self.test_results
         }
         
@@ -246,28 +221,22 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         print(f"✅ Success: {'YES' if results['success'] else 'NO'}")
         print(f"🎯 Total moves: {results['total_moves']}")
         print(f"⭐ Optimal moves: {results['optimal_moves']}")
-        print(f"🎪 AI optimal moves: {results['ai_correct_moves']}/{results['total_moves']}")
-        print(f"📈 Accuracy: {results['accuracy_percent']}%")
         print(f"⚡ Efficiency: {results['efficiency_percent']}%")
+        print(f"💰 Budget exceeded: {'YES' if results['exceeded_budget'] else 'NO'}")
         
         if results['success']:
-            if results['accuracy_percent'] == 100:
-                print("\n🏆 PERFECT! AI solved optimally!")
-            elif results['accuracy_percent'] >= 80:
-                print("\n🥈 EXCELLENT! AI performed very well!")
-            else:
-                print("\n🥉 GOOD! AI completed but with suboptimal moves!")
+            print("\n🏆 SUCCESS! AI solved within the optimal move budget!")
+            print(f"   Used {results['total_moves']} moves (budget: {results['optimal_moves']})")
         else:
-            print(f"\n💔 AI failed to complete the puzzle")
-            if results['total_moves'] >= results['optimal_moves'] * 2:
-                print("   Exceeded maximum move limit")
+            print(f"\n💔 FAILURE! AI did not solve within budget")
+            if results['exceeded_budget']:
+                print(f"   Used {results['total_moves']} moves, budget was {results['optimal_moves']}")
+            else:
+                print(f"   AI made invalid move or couldn't complete puzzle")
         
         # Display final tower state if completed
         if results['success']:
             self.display.display_completion(results['total_moves'], results['optimal_moves'])
-        
-        # Export results to JSON file
-        self._export_results(results)
 
     def _export_results(self, results: dict) -> str:
         """Export test results to a timestamped JSON file."""
@@ -297,7 +266,6 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False, default=str)
             
-            print(f"📂 Results exported to: {filepath}")
             return filepath
         except Exception as e:
             print(f"⚠️  Warning: Failed to export results: {e}")
@@ -355,8 +323,8 @@ def main():
     
     if 'error' not in results:
         print(f"\n💾 Test completed for {num_disks} disks")
-        print(f"   AI accuracy: {results['accuracy_percent']}%")
-        print(f"   AI efficiency: {results['efficiency_percent']}%")
+        print(f"   Status: {results['status']}")
+        print(f"   Efficiency: {results['efficiency_percent']}%")
 
 
 if __name__ == "__main__":
