@@ -2,6 +2,8 @@
 
 Tests AI reasoning models on the classic Towers of Hanoi puzzle. The AI gets up to double the theoretical minimum moves to solve the puzzle, with outcomes based on efficiency.
 
+No, this does not test the exact same scenario from that [Apple paper](https://ml-site.cdn-apple.com/papers/the-illusion-of-thinking.pdf).
+
 ## Setup
 
 1. **Install dependencies:**
@@ -19,13 +21,11 @@ cp .env.example .env
 
 ```bash
 # Interactive mode
-python -m src.main
+python run.py
 
 # Auto mode (no pauses)
-python -m src.main 4 --auto
+python run.py 4 --auto
 
-# Demo optimal solution (no API key needed)
-python demo_optimal.py
 ```
 
 ## How it works
@@ -34,9 +34,9 @@ python demo_optimal.py
 - AI receives **comprehensive enhanced context**: last 3 moves + corresponding previous game states + previous reasoning
 - AI can learn from its own past reasoning patterns and build upon successful strategies
 - AI is instructed to avoid cycling back to previous states (prevents inefficient loops)
-- Test stops when puzzle is solved or budget is exceeded
+- Test stops when puzzle is solved, when an invalid move is detected, or when the budget is exceeded
 - Results auto-exported to `output/` with timestamps
-- Efficiency calculated at end based on theoretical minimum
+- **Efficiency calculated only for completed games** - incomplete games show "N/A"
 
 ## Results
 

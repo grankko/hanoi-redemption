@@ -233,8 +233,12 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             success = False
             status = "FAILURE"
         
-        # Calculate efficiency
-        efficiency = (optimal_moves / self.move_count * 100) if self.move_count > 0 else 0
+        # Calculate efficiency - only for completed games
+        if self.game.is_solved():
+            efficiency = (optimal_moves / self.move_count * 100) if self.move_count > 0 else 0
+        else:
+            # Game not completed - efficiency is 0%
+            efficiency = 0.0
         
         results = {
             'num_disks': self.num_disks,
@@ -270,8 +274,15 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         print(f"🎯 Moves used: {results['total_moves']}")
         print(f"⭐ Optimal moves: {results['optimal_moves']}")
         print(f"💰 Max budget: {results['max_moves']}")
-        print(f"⚡ Efficiency: {results['efficiency_percent']}%")
-        print(f"🏆 Optimal: {'YES' if not results['exceeded_optimal'] else 'NO'}")
+        
+        # Only show efficiency details for completed games
+        if results['success']:
+            print(f"⚡ Efficiency: {results['efficiency_percent']}%")
+            print(f"🏆 Optimal: {'YES' if not results['exceeded_optimal'] else 'NO'}")
+        else:
+            print(f"⚡ Efficiency: N/A (game not completed)")
+            print(f"🏆 Optimal: N/A")
+            
         print(f"💸 Budget exceeded: {'YES' if results['exceeded_budget'] else 'NO'}")
         
         if results['success']:
@@ -283,11 +294,12 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 print(f"   Used {results['total_moves']}/{results['max_moves']} moves")
                 print(f"   Efficiency: {results['efficiency_percent']}%")
         else:
-            print(f"\n💔 FAILURE! AI did not solve within budget")
+            print(f"\n💔 FAILURE! AI did not solve the puzzle")
             if results['exceeded_budget']:
                 print(f"   Used {results['total_moves']} moves, budget was {results['max_moves']}")
             else:
-                print(f"   AI made invalid move or couldn't complete puzzle")
+                print(f"   AI made invalid move or test was cancelled")
+            print(f"   No efficiency calculated for incomplete games")
         
         # Display final tower state if completed
         if results['success']:
@@ -379,7 +391,10 @@ def main():
         print(f"\n💾 Test completed for {num_disks} disks")
         print(f"   Status: {results['status']}")
         print(f"   Moves: {results['total_moves']}/{results['max_moves']}")
-        print(f"   Efficiency: {results['efficiency_percent']}%")
+        if results['success']:
+            print(f"   Efficiency: {results['efficiency_percent']}%")
+        else:
+            print(f"   Efficiency: N/A (incomplete)")
 
 
 if __name__ == "__main__":
