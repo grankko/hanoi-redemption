@@ -96,18 +96,20 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             self.game.state.tower_c
         ], self.move_count)
         
-        # Calculate move budget (minimum possible moves for this puzzle)
-        optimal_move_count = (2 ** self.num_disks) - 1
+        # Calculate move budgets
+        optimal_moves = (2 ** self.num_disks) - 1
+        max_moves = optimal_moves * 2  # Double the optimal for maximum allowed
         
-        print(f"📊 Minimum possible moves for {self.num_disks} disks: {optimal_move_count}")
-        print(f"🤖 AI has budget of {optimal_move_count} moves to solve this puzzle")
+        print(f"📊 Theoretical minimum moves for {self.num_disks} disks: {optimal_moves}")
+        print(f"🤖 AI has budget of {max_moves} moves to solve this puzzle")
+        print(f"🏆 Optimal completion: {optimal_moves} moves")
         print(f"🧠 Testing AI reasoning capability...")
         print()
         
         # Main game loop
-        while not self.game.is_solved() and self.move_count < optimal_move_count:
+        while not self.game.is_solved() and self.move_count < max_moves:
             print(f"\n--- Turn #{self.move_count + 1} ---")
-            print(f"💰 Moves remaining in budget: {optimal_move_count - self.move_count}")
+            print(f"💰 Moves remaining in budget: {max_moves - self.move_count}")
             
             # Get AI's move
             print("🤖 AI is thinking...")
@@ -168,33 +170,48 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                     break
         
         # Check if AI exceeded budget
-        if self.move_count >= optimal_move_count and not self.game.is_solved():
+        if self.move_count >= max_moves and not self.game.is_solved():
             print(f"\n💸 AI EXCEEDED MOVE BUDGET!")
-            print(f"   Used {self.move_count} moves, budget was {optimal_move_count}")
+            print(f"   Used {self.move_count} moves, budget was {max_moves}")
             print("   AI failed to solve within budget")
         
         # Test completed - show results
-        return self._generate_test_results(optimal_move_count)
+        return self._generate_test_results(optimal_moves, max_moves)
     
-    def _generate_test_results(self, optimal_total: int) -> dict:
-        """Generate comprehensive test results with strict budget-based validation."""
-        # Strict budget-based approach: only 2 outcomes
-        if self.game.is_solved() and self.move_count <= optimal_total:
-            # SUCCESS: Solved within the optimal move budget
-            success = True
-            status = "SUCCESS"
+    def _generate_test_results(self, optimal_moves: int, max_moves: int) -> dict:
+        """Generate comprehensive test results with 3-outcome validation."""
+        # Determine outcome based on completion and move count
+        if self.game.is_solved():
+            if self.move_count <= optimal_moves:
+                # Solved within theoretical minimum
+                success = True
+                status = "OPTIMAL_SUCCESS"
+            elif self.move_count <= max_moves:
+                # Solved within 2x budget
+                success = True
+                status = "SUCCESS"
+            else:
+                # This shouldn't happen due to loop condition, but safety check
+                success = False
+                status = "FAILURE"
         else:
-            # FAILURE: Either didn't solve or exceeded budget
+            # Not solved (either exceeded budget or invalid move)
             success = False
             status = "FAILURE"
+        
+        # Calculate efficiency
+        efficiency = (optimal_moves / self.move_count * 100) if self.move_count > 0 else 0
         
         results = {
             'num_disks': self.num_disks,
             'success': success,
             'status': status,
             'total_moves': self.move_count,
-            'budget_moves': optimal_total,
-            'exceeded_budget': self.move_count > optimal_total,
+            'optimal_moves': optimal_moves,
+            'max_moves': max_moves,
+            'efficiency_percent': round(efficiency, 1),
+            'exceeded_optimal': self.move_count > optimal_moves,
+            'exceeded_budget': self.move_count > max_moves,
             'move_details': self.test_results
         }
         
@@ -217,22 +234,30 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
         print(f"📊 Status: {results['status']}")
         print(f"✅ Success: {'YES' if results['success'] else 'NO'}")
         print(f"🎯 Moves used: {results['total_moves']}")
-        print(f"💰 Budget allowed: {results['budget_moves']}")
+        print(f"⭐ Optimal moves: {results['optimal_moves']}")
+        print(f"💰 Max budget: {results['max_moves']}")
+        print(f"⚡ Efficiency: {results['efficiency_percent']}%")
+        print(f"🏆 Optimal: {'YES' if not results['exceeded_optimal'] else 'NO'}")
         print(f"💸 Budget exceeded: {'YES' if results['exceeded_budget'] else 'NO'}")
         
         if results['success']:
-            print("\n🏆 SUCCESS! AI solved within the move budget!")
-            print(f"   Used {results['total_moves']}/{results['budget_moves']} moves")
+            if results['status'] == "OPTIMAL_SUCCESS":
+                print("\n🏆 OPTIMAL SUCCESS! AI solved within theoretical minimum!")
+                print(f"   Used {results['total_moves']}/{results['optimal_moves']} moves (perfect efficiency)")
+            else:  # SUCCESS
+                print("\n🥈 SUCCESS! AI solved within budget!")
+                print(f"   Used {results['total_moves']}/{results['max_moves']} moves")
+                print(f"   Efficiency: {results['efficiency_percent']}%")
         else:
             print(f"\n💔 FAILURE! AI did not solve within budget")
             if results['exceeded_budget']:
-                print(f"   Used {results['total_moves']} moves, budget was {results['budget_moves']}")
+                print(f"   Used {results['total_moves']} moves, budget was {results['max_moves']}")
             else:
                 print(f"   AI made invalid move or couldn't complete puzzle")
         
         # Display final tower state if completed
         if results['success']:
-            self.display.display_completion(results['total_moves'], results['budget_moves'])
+            self.display.display_completion(results['total_moves'], results['optimal_moves'])
 
     def _export_results(self, results: dict) -> str:
         """Export test results to a timestamped JSON file."""
@@ -320,7 +345,8 @@ def main():
     if 'error' not in results:
         print(f"\n💾 Test completed for {num_disks} disks")
         print(f"   Status: {results['status']}")
-        print(f"   Moves: {results['total_moves']}/{results['budget_moves']}")
+        print(f"   Moves: {results['total_moves']}/{results['max_moves']}")
+        print(f"   Efficiency: {results['efficiency_percent']}%")
 
 
 if __name__ == "__main__":

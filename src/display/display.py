@@ -90,17 +90,18 @@ class TowerDisplay:
         
         print()
     
-    def display_completion(self, total_moves: int, budget_moves: int):
-        """Display completion message for budget-based validation."""
+    def display_completion(self, total_moves: int, optimal_moves: int):
+        """Display completion message with efficiency calculation."""
         print("🎉" * (self.total_width // 2))
         print("PUZZLE SOLVED!".center(self.total_width))
         print(f"Moves used: {total_moves}".center(self.total_width))
-        print(f"Budget allowed: {budget_moves}".center(self.total_width))
+        print(f"Optimal moves: {optimal_moves}".center(self.total_width))
         
-        if total_moves <= budget_moves:
-            print("SUCCESS! Solved within budget! 🏆".center(self.total_width))
+        if total_moves == optimal_moves:
+            print("OPTIMAL! Perfect efficiency! 🏆".center(self.total_width))
         else:
-            print("Budget exceeded but solved! 💸".center(self.total_width))
+            efficiency = (optimal_moves / total_moves) * 100
+            print(f"Efficiency: {efficiency:.1f}%".center(self.total_width))
         
         print("🎉" * (self.total_width // 2))
     

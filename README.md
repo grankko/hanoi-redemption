@@ -1,6 +1,6 @@
 # Towers of Hanoi AI Test
 
-Tests AI reasoning models on the classic Towers of Hanoi puzzle. The AI gets a strict budget of optimal moves (2^n - 1) to solve the puzzle.
+Tests AI reasoning models on the classic Towers of Hanoi puzzle. The AI gets up to double the theoretical minimum moves to solve the puzzle, with outcomes based on efficiency.
 
 ## Setup
 
@@ -30,14 +30,15 @@ python demo_optimal.py
 
 ## How it works
 
-- AI gets exactly 2^n - 1 moves to solve n disks
-- Test fails if AI exceeds this optimal budget
+- AI gets up to 2x the theoretical minimum moves (2 * (2^n - 1)) to solve n disks
+- Test stops when puzzle is solved or budget is exceeded
 - Results auto-exported to `output/` with timestamps
-- Multiple optimal solutions exist, any path within budget counts as success
+- Efficiency calculated at end based on theoretical minimum
 
 ## Results
 
-- **SUCCESS**: AI solved within the optimal move budget (2^n - 1 moves)
-- **FAILURE**: AI exceeded budget or made invalid move
+- **OPTIMAL_SUCCESS**: AI solved within theoretical minimum moves (2^n - 1)
+- **SUCCESS**: AI solved within 2x budget but used more than minimum moves
+- **FAILURE**: AI exceeded 2x budget or made invalid move
 
 Built to validate research claims about AI reasoning limitations on recursive problems.
