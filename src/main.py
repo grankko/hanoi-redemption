@@ -35,7 +35,7 @@ class HanoiAITester:
         self.ai_client = None
         self.move_count = 0
         self.test_results = []
-        self.previous_move = None  # Track previous move for context
+        self.recent_moves = []  # Track last 3 moves for context
         
     def initialize_ai(self) -> bool:
         """Initialize the AI client."""
@@ -62,7 +62,7 @@ class HanoiAITester:
             return None
     
     def _create_ai_prompt(self) -> str:
-        """Create a detailed game state description for the AI with previous move context."""
+        """Create a detailed game state description for the AI with recent move context."""
         towers = self.game.state
         
         prompt = f"""{self.num_disks}-disk Towers of Hanoi puzzle - Turn #{self.move_count + 1}
@@ -71,9 +71,15 @@ Tower A: {towers.tower_a if towers.tower_a else 'empty'}
 Tower B: {towers.tower_b if towers.tower_b else 'empty'}  
 Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
-        # Add previous move context if this isn't the first move
-        if self.previous_move is not None:
-            prompt += f"\n\nPrevious move: {self.previous_move}"
+        # Add recent moves context (last 3 moves)
+        if self.recent_moves:
+            prompt += f"\n\nRecent moves:"
+            recent_to_show = self.recent_moves[-3:]  # Get last 3 moves
+            start_move_num = max(1, self.move_count - len(recent_to_show) + 1)
+            
+            for i, move in enumerate(recent_to_show):
+                move_num = start_move_num + i
+                prompt += f"\n  Move {move_num}: {move}"
 
         return prompt
     
@@ -143,7 +149,11 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 success = self.game.make_move(ai_move)
                 if success:
                     self.move_count += 1
-                    self.previous_move = ai_move  # Track previous move for context
+                    
+                    # Track recent moves for context (keep last 3)
+                    self.recent_moves.append(ai_move)
+                    if len(self.recent_moves) > 3:
+                        self.recent_moves.pop(0)  # Remove oldest move
                     
                     # Display updated state
                     self.display.display_towers([

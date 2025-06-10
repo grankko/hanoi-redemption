@@ -37,6 +37,12 @@
 - **Clear Calculation**: (optimal_moves / actual_moves) * 100%
 - **Displayed Prominently**: In results and completion screens
 
+#### **🧠 AI Context & Prompting**
+- **Recent Move Context**: AI sees last 3 moves (comparable to human memory)
+- **Rich State Description**: Current tower configuration with move history
+- **Strategic Awareness**: Better decision making with historical context
+- **Human-Like**: More realistic problem-solving environment
+
 #### **Export & Results**
 - **Automatic JSON Export**: Timestamped files in `output/` directory
 - **Rich Metadata**: Includes all move details, timing, and analysis
