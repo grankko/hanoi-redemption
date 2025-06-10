@@ -1,6 +1,6 @@
 # Towers of Hanoi AI Test
 
-Tests AI reasoning models on the classic Towers of Hanoi puzzle. The AI gets up to double the theoretical minimum moves to solve the puzzle, with outcomes based on efficiency.
+Tests OpenAI reasoning models on the classic Towers of Hanoi puzzle. The AI gets up to double the theoretical minimum moves to solve the puzzle, with outcomes based on efficiency.
 
 No, this does not test the exact same scenario from that [Apple paper](https://ml-site.cdn-apple.com/papers/the-illusion-of-thinking.pdf).
 
@@ -43,3 +43,22 @@ python run.py 4 --auto
 - **OPTIMAL_SUCCESS**: AI solved within theoretical minimum moves (2^n - 1)
 - **SUCCESS**: AI solved within 2x budget but used more than minimum moves
 - **FAILURE**: AI exceeded 2x budget or made invalid move
+
+## Code Structure
+
+The application is organized into modules:
+
+```
+src/
+├── main.py                # Clean entry point (~80 lines)
+├── testing/               # AI testing components
+│   ├── ai_tester.py       # Core AI testing logic
+│   ├── test_runner.py     # Test orchestration & game loop
+│   └── results_manager.py # Results handling & export
+├── schemas/               # Data models
+│   ├── hanoi_move.py      # Move representation
+│   └── game_state.py      # Game state & AI response models
+├── api/                   # OpenAI integration
+├── display/               # Visual output
+└── game/                  # Core game logic
+```
