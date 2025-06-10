@@ -36,6 +36,7 @@ class HanoiAITester:
         self.move_count = 0
         self.test_results = []
         self.recent_moves = []  # Track last 3 moves for context
+        self.recent_states = []  # Track states corresponding to recent moves
         
     def initialize_ai(self) -> bool:
         """Initialize the AI client."""
@@ -62,24 +63,33 @@ class HanoiAITester:
             return None
     
     def _create_ai_prompt(self) -> str:
-        """Create a detailed game state description for the AI with recent move context."""
+        """Create a detailed game state description for the AI with recent move and state context."""
         towers = self.game.state
         
         prompt = f"""{self.num_disks}-disk Towers of Hanoi puzzle - Turn #{self.move_count + 1}
 
+CURRENT STATE:
 Tower A: {towers.tower_a if towers.tower_a else 'empty'}
 Tower B: {towers.tower_b if towers.tower_b else 'empty'}  
 Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
-        # Add recent moves context (last 3 moves)
-        if self.recent_moves:
-            prompt += f"\n\nRecent moves:"
-            recent_to_show = self.recent_moves[-3:]  # Get last 3 moves
-            start_move_num = max(1, self.move_count - len(recent_to_show) + 1)
+        # Add recent moves and states context (last 3 moves)
+        if self.recent_moves and self.recent_states:
+            prompt += f"\n\nRECENT GAME HISTORY:"
+            recent_moves_to_show = self.recent_moves[-3:]  # Get last 3 moves
+            recent_states_to_show = self.recent_states[-3:]  # Get last 3 corresponding states
+            start_move_num = max(1, self.move_count - len(recent_moves_to_show) + 1)
             
-            for i, move in enumerate(recent_to_show):
+            for i, (move, state_before) in enumerate(zip(recent_moves_to_show, recent_states_to_show)):
                 move_num = start_move_num + i
-                prompt += f"\n  Move {move_num}: {move}"
+                prompt += f"\n\n--- Move {move_num} ---"
+                prompt += f"\nState before move:"
+                prompt += f"\n  Tower A: {state_before['tower_a'] if state_before['tower_a'] else 'empty'}"
+                prompt += f"\n  Tower B: {state_before['tower_b'] if state_before['tower_b'] else 'empty'}"
+                prompt += f"\n  Tower C: {state_before['tower_c'] if state_before['tower_c'] else 'empty'}"
+                prompt += f"\nMove made: {move}"
+
+        prompt += f"\n\nNOTE: Avoid making moves that would return to any of the previous states shown above."
 
         return prompt
     
@@ -146,14 +156,25 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
             
             # Execute the move if valid
             if is_valid:
+                # Capture the current state BEFORE making the move
+                state_before_move = {
+                    'tower_a': self.game.state.tower_a.copy(),
+                    'tower_b': self.game.state.tower_b.copy(),
+                    'tower_c': self.game.state.tower_c.copy()
+                }
+                
                 success = self.game.make_move(ai_move)
                 if success:
                     self.move_count += 1
                     
-                    # Track recent moves for context (keep last 3)
+                    # Track recent moves and states for context (keep last 3)
                     self.recent_moves.append(ai_move)
+                    self.recent_states.append(state_before_move)
+                    
+                    # Keep only last 3 items in both lists
                     if len(self.recent_moves) > 3:
                         self.recent_moves.pop(0)  # Remove oldest move
+                        self.recent_states.pop(0)  # Remove oldest state
                     
                     # Display updated state
                     self.display.display_towers([

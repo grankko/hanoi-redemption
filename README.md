@@ -31,7 +31,8 @@ python demo_optimal.py
 ## How it works
 
 - AI gets up to 2x the theoretical minimum moves (2 * (2^n - 1)) to solve n disks
-- AI receives context of the last 3 moves (more comparable to human problem-solving)
+- AI receives enhanced context: **last 3 moves AND the corresponding previous game states**
+- AI is instructed to avoid cycling back to previous states (prevents inefficient loops)
 - Test stops when puzzle is solved or budget is exceeded
 - Results auto-exported to `output/` with timestamps
 - Efficiency calculated at end based on theoretical minimum
