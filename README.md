@@ -41,5 +41,3 @@ python demo_optimal.py
 - **OPTIMAL_SUCCESS**: AI solved within theoretical minimum moves (2^n - 1)
 - **SUCCESS**: AI solved within 2x budget but used more than minimum moves
 - **FAILURE**: AI exceeded 2x budget or made invalid move
-
-Built to validate research claims about AI reasoning limitations on recursive problems.
