@@ -117,5 +117,4 @@ class TowerDisplay:
         print("3. A larger disk cannot be placed on a smaller disk")
         print()
         print("Watch as the algorithm solves it automatically!")
-        print("(Seeking redemption after Apple's criticism... 😤)")
         print()

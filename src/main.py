@@ -89,8 +89,6 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 prompt += f"\n  Tower C: {state_before['tower_c'] if state_before['tower_c'] else 'empty'}"
                 prompt += f"\nMove made: {move}"
 
-        prompt += f"\n\nNOTE: Avoid making moves that would return to any of the previous states shown above."
-
         return prompt
     
     def run_test(self, auto_mode: bool = False) -> dict:
@@ -344,7 +342,6 @@ def main():
     
     print("🗼 TOWERS OF HANOI - AI REASONING TEST 🗼")
     print("Testing AI models' ability to solve Towers of Hanoi puzzles")
-    print("(Research validation after claims about reasoning model limitations)")
     print()
     
     # Get number of disks
