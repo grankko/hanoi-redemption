@@ -72,6 +72,7 @@ Provide your next move suggestion along with clear reasoning explaining why this
         try:
             response = self.client.responses.parse(
                 model=self.model,
+                reasoning={"effort": "medium"},
                 input=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
