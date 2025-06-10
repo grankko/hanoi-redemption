@@ -11,8 +11,10 @@ import argparse
 # Try absolute import first, fallback to relative
 try:
     from src.testing import TestRunner
+    from src.api import MockAIClient, MockMode
 except ImportError:
     from .testing import TestRunner
+    from .api import MockAIClient, MockMode
 
 
 def get_num_disks_from_user() -> int:
@@ -48,11 +50,19 @@ def main():
         action="store_true", 
         help="Run in auto mode (no pauses between moves)"
     )
+    parser.add_argument(
+        "--mock",
+        type=str,
+        choices=["optimal", "invalid-move", "budget-exceeded"],
+        help="Use mock AI client with specified behavior mode"
+    )
     
     args = parser.parse_args()
     
     print("🗼 TOWERS OF HANOI - AI REASONING TEST 🗼")
     print("Testing AI models' ability to solve Towers of Hanoi puzzles")
+    if args.mock:
+        print(f"🤖 Mock Mode: {args.mock}")
     print()
     
     # Get number of disks
@@ -65,8 +75,19 @@ def main():
         # Interactive mode if no argument provided
         num_disks = get_num_disks_from_user()
     
+    # Create AI client based on mode
+    ai_client = None
+    if args.mock:
+        try:
+            mode = MockMode(args.mock)
+            ai_client = MockAIClient(mode, num_disks)
+            print(f"✅ Mock AI client initialized in {args.mock} mode")
+        except ValueError as e:
+            print(f"❌ Error creating mock client: {e}")
+            sys.exit(1)
+    
     # Run the test
-    test_runner = TestRunner(num_disks)
+    test_runner = TestRunner(num_disks, ai_client)
     results = test_runner.run_test(auto_mode=args.auto)
     
     if 'error' not in results:
@@ -77,6 +98,9 @@ def main():
             print(f"   Efficiency: {results['efficiency_percent']}%")
         else:
             print(f"   Efficiency: N/A (incomplete)")
+        
+        if args.mock:
+            print(f"   Mock Mode: {args.mock} - Test completed successfully! ✅")
 
 
 if __name__ == "__main__":

@@ -10,11 +10,13 @@ from dotenv import load_dotenv
 # Try absolute import first, fallback to relative
 try:
     from src.schemas import HanoiMoveResponse
+    from src.api.ai_client_interface import AIClientInterface
 except ImportError:
     from ..schemas import HanoiMoveResponse
+    from .ai_client_interface import AIClientInterface
 
 
-class HanoiAIClient:
+class HanoiAIClient(AIClientInterface):
     """
     Client for interacting with OpenAI API to get Towers of Hanoi moves.
     """

@@ -26,7 +26,19 @@ python run.py
 # Auto mode (no pauses)
 python run.py 4 --auto
 
+# Mock AI testing (no API key needed)
+python run.py 3 --mock optimal --auto
+python run.py 3 --mock invalid-move --auto
+python run.py 3 --mock budget-exceeded --auto
 ```
+
+### Mock AI Modes 🤖
+
+Test the application without OpenAI API calls using mock AI clients:
+
+- **`--mock optimal`** - Perfect optimal solver (100% efficiency)
+- **`--mock invalid-move`** - Tests error handling with invalid moves
+- **`--mock budget-exceeded`** - Tests budget enforcement with inefficient moves
 
 ## How it works
 
@@ -44,21 +56,17 @@ python run.py 4 --auto
 - **SUCCESS**: AI solved within 2x budget but used more than minimum moves
 - **FAILURE**: AI exceeded 2x budget or made invalid move
 
-## Code Structure
+## Mock AI Testing
 
-The application is organized into modules:
+The application includes a mock AI system for testing without OpenAI API calls:
 
-```
-src/
-├── main.py                # Clean entry point (~80 lines)
-├── testing/               # AI testing components
-│   ├── ai_tester.py       # Core AI testing logic
-│   ├── test_runner.py     # Test orchestration & game loop
-│   └── results_manager.py # Results handling & export
-├── schemas/               # Data models
-│   ├── hanoi_move.py      # Move representation
-│   └── game_state.py      # Game state & AI response models
-├── api/                   # OpenAI integration
-├── display/               # Visual output
-└── game/                  # Core game logic
+```bash
+# Test perfect optimal solution
+python run.py 3 --mock optimal --auto
+
+# Test error handling
+python run.py 3 --mock invalid-move --auto
+
+# Test budget enforcement  
+python run.py 3 --mock budget-exceeded --auto
 ```

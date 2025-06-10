@@ -9,19 +9,26 @@ from typing import Optional
 from .ai_tester import HanoiAITester
 from .results_manager import ResultsManager
 
+# Try absolute import first, fallback to relative
+try:
+    from src.api import AIClientInterface
+except ImportError:
+    from ..api import AIClientInterface
+
 
 class TestRunner:
     """
     Orchestrates the execution of Towers of Hanoi AI tests.
     
     Handles the main game loop, user interaction, and coordination between
-    the AI tester and results manager.
+    the AI tester and results manager. Supports both real and mock AI clients.
     """
     
-    def __init__(self, num_disks: int):
+    def __init__(self, num_disks: int, ai_client: Optional[AIClientInterface] = None):
         self.num_disks = num_disks
-        self.tester = HanoiAITester(num_disks)
+        self.tester = HanoiAITester(num_disks, ai_client)
         self.results_manager = ResultsManager(num_disks)
+        self.mock_mode = ai_client is not None  # Track if we're using a mock client
     
     def run_test(self, auto_mode: bool = False) -> dict:
         """
@@ -50,21 +57,20 @@ class TestRunner:
         if test_result:
             return test_result
         
-        # Check if AI exceeded budget
-        if self.tester.move_count >= max_moves and not self.tester.is_solved():
-            print(f"\n💸 AI EXCEEDED MOVE BUDGET!")
-            print(f"   Used {self.tester.move_count} moves, budget was {max_moves}")
-            print("   AI failed to solve within budget")
-        
         # Test completed - show results
         return self._finalize_results(optimal_moves, max_moves)
     
     def _display_test_info(self, optimal_moves: int, max_moves: int):
         """Display test information and budgets."""
+        if self.mock_mode:
+            print(f"🤖 MOCK AI MODE - Testing with simulated AI behavior")
         print(f"📊 Theoretical minimum moves for {self.num_disks} disks: {optimal_moves}")
         print(f"🤖 AI has budget of {max_moves} moves to solve this puzzle")
         print(f"🏆 Optimal completion: {optimal_moves} moves")
-        print(f"🧠 Testing AI reasoning capability...")
+        if self.mock_mode:
+            print(f"🧪 Testing AI simulation and validation logic...")
+        else:
+            print(f"🧠 Testing AI reasoning capability...")
         print()
     
     def _run_game_loop(self, auto_mode: bool, max_moves: int) -> Optional[dict]:
@@ -74,7 +80,7 @@ class TestRunner:
         Returns:
             Optional[dict]: Error result if loop should terminate early, None to continue
         """
-        while not self.tester.is_solved() and self.tester.move_count < max_moves:
+        while not self.tester.is_solved():
             print(f"\n--- Turn #{self.tester.move_count + 1} ---")
             print(f"💰 Moves remaining in budget: {max_moves - self.tester.move_count}")
             
@@ -96,6 +102,13 @@ class TestRunner:
                 print(f"💔 {message} - stopping test")
                 break
             
+            # Check if budget exceeded AFTER making the move
+            if self.tester.move_count > max_moves:
+                print(f"\n💸 AI EXCEEDED MOVE BUDGET!")
+                print(f"   Used {self.tester.move_count} moves, budget was {max_moves}")
+                print("   AI failed to solve within budget")
+                break
+            
             # Wait for user confirmation (unless auto mode)
             if not auto_mode:
                 try:
@@ -105,6 +118,7 @@ class TestRunner:
                         break
                 except (EOFError, KeyboardInterrupt):
                     print("\n🛑 Test interrupted by user")
+                    break
                     break
         
         return None  # Continue to results

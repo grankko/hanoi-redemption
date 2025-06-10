@@ -9,12 +9,12 @@ from typing import Optional
 
 # Try absolute import first, fallback to relative
 try:
-    from src.api import HanoiAIClient
+    from src.api import HanoiAIClient, AIClientInterface
     from src.game import TowersOfHanoi
     from src.schemas import HanoiMove
     from src.display import TowerDisplay
 except ImportError:
-    from ..api import HanoiAIClient
+    from ..api import HanoiAIClient, AIClientInterface
     from ..game import TowersOfHanoi
     from ..schemas import HanoiMove
     from ..display import TowerDisplay
@@ -25,13 +25,14 @@ class HanoiAITester:
     Core AI testing functionality for Towers of Hanoi puzzles.
     
     Handles AI initialization, move generation, validation, and context tracking.
+    Supports dependency injection for different AI client implementations.
     """
     
-    def __init__(self, num_disks: int):
+    def __init__(self, num_disks: int, ai_client: Optional[AIClientInterface] = None):
         self.num_disks = num_disks
         self.game = TowersOfHanoi(num_disks)
         self.display = TowerDisplay(num_disks)
-        self.ai_client = None
+        self.ai_client = ai_client  # Use injected client if provided
         self.move_count = 0
         self.test_results = []
         self.recent_moves = []  # Track last 3 moves for context
@@ -39,7 +40,12 @@ class HanoiAITester:
         self.recent_reasoning = []  # Track AI reasoning for recent moves
         
     def initialize_ai(self) -> bool:
-        """Initialize the AI client."""
+        """Initialize the AI client if not already provided via dependency injection."""
+        # If a client was already injected, we're good to go
+        if self.ai_client is not None:
+            return True
+            
+        # Otherwise, initialize the default OpenAI client
         try:
             self.ai_client = HanoiAIClient()
             return True
