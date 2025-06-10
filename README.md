@@ -31,7 +31,8 @@ python demo_optimal.py
 ## How it works
 
 - AI gets up to 2x the theoretical minimum moves (2 * (2^n - 1)) to solve n disks
-- AI receives enhanced context: **last 3 moves AND the corresponding previous game states**
+- AI receives **comprehensive enhanced context**: last 3 moves + corresponding previous game states + previous reasoning
+- AI can learn from its own past reasoning patterns and build upon successful strategies
 - AI is instructed to avoid cycling back to previous states (prevents inefficient loops)
 - Test stops when puzzle is solved or budget is exceeded
 - Results auto-exported to `output/` with timestamps

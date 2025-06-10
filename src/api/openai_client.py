@@ -62,7 +62,10 @@ RULES:
 STRATEGY:
 Think strategically about the optimal sequence of moves to solve the puzzle efficiently. Consider the recursive nature of the problem and plan several moves ahead to ensure you're working toward the optimal solution.
 
-IMPORTANT: If you see previous game states in the context, avoid making moves that would return the game to a previous state. Cycling back to earlier configurations is a clear sign of inefficient problem-solving and should be avoided to maintain optimal progress.
+LEARNING FROM HISTORY:
+If you see previous game states and reasoning in the context, learn from your past decisions. Analyze whether your previous reasoning was sound and build upon successful strategies while avoiding repeated mistakes.
+
+IMPORTANT: Before making a decision what move to make, verify that you are not ending up in a previous game state. Cycling back to earlier configurations is a clear sign of inefficient problem-solving and should be avoided to maintain optimal progress. Also think a few moves ahead to make sure you are not setting up a situation that will lead to cycling back.
 
 RESPONSE:
 Provide your next move suggestion along with clear reasoning explaining why this move is optimal for the current game state."""

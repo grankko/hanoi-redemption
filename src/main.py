@@ -37,6 +37,7 @@ class HanoiAITester:
         self.test_results = []
         self.recent_moves = []  # Track last 3 moves for context
         self.recent_states = []  # Track states corresponding to recent moves
+        self.recent_reasoning = []  # Track AI reasoning for recent moves
         
     def initialize_ai(self) -> bool:
         """Initialize the AI client."""
@@ -73,14 +74,15 @@ Tower A: {towers.tower_a if towers.tower_a else 'empty'}
 Tower B: {towers.tower_b if towers.tower_b else 'empty'}  
 Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
 
-        # Add recent moves and states context (last 3 moves)
-        if self.recent_moves and self.recent_states:
+        # Add recent moves, states, and reasoning context (last 3 moves)
+        if self.recent_moves and self.recent_states and self.recent_reasoning:
             prompt += f"\n\nRECENT GAME HISTORY:"
             recent_moves_to_show = self.recent_moves[-3:]  # Get last 3 moves
             recent_states_to_show = self.recent_states[-3:]  # Get last 3 corresponding states
+            recent_reasoning_to_show = self.recent_reasoning[-3:]  # Get last 3 reasoning explanations
             start_move_num = max(1, self.move_count - len(recent_moves_to_show) + 1)
             
-            for i, (move, state_before) in enumerate(zip(recent_moves_to_show, recent_states_to_show)):
+            for i, (move, state_before, reasoning) in enumerate(zip(recent_moves_to_show, recent_states_to_show, recent_reasoning_to_show)):
                 move_num = start_move_num + i
                 prompt += f"\n\n--- Move {move_num} ---"
                 prompt += f"\nState before move:"
@@ -88,6 +90,7 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 prompt += f"\n  Tower B: {state_before['tower_b'] if state_before['tower_b'] else 'empty'}"
                 prompt += f"\n  Tower C: {state_before['tower_c'] if state_before['tower_c'] else 'empty'}"
                 prompt += f"\nMove made: {move}"
+                prompt += f"\nReasoning: {reasoning}"
 
         return prompt
     
@@ -165,14 +168,16 @@ Tower C: {towers.tower_c if towers.tower_c else 'empty'}"""
                 if success:
                     self.move_count += 1
                     
-                    # Track recent moves and states for context (keep last 3)
+                    # Track recent moves, states, and reasoning for context (keep last 3)
                     self.recent_moves.append(ai_move)
                     self.recent_states.append(state_before_move)
+                    self.recent_reasoning.append(ai_reasoning)
                     
-                    # Keep only last 3 items in both lists
+                    # Keep only last 3 items in all lists
                     if len(self.recent_moves) > 3:
                         self.recent_moves.pop(0)  # Remove oldest move
                         self.recent_states.pop(0)  # Remove oldest state
+                        self.recent_reasoning.pop(0)  # Remove oldest reasoning
                     
                     # Display updated state
                     self.display.display_towers([
