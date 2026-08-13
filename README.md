@@ -67,6 +67,48 @@ Both protocols use the same deterministic simulator. The validator checks the na
 and destination pegs, legality of every move, and final state. It does not trust the model's own claim
 that a puzzle was solved.
 
+## Non-interactive runs and AI agents
+
+Use `hanoi run` to start an evaluation without opening the menu, asking for confirmation, or reading
+from standard input. The four experiment-defining flags are required, and animation is disabled by
+default. After validating the flags and credentials, it begins potentially paid API calls
+immediately, so an agent should only execute it when the run has been authorized:
+
+```bash
+hanoi run \
+  --model gpt-5.6-luna \
+  --reasoning medium \
+  --protocol paper \
+  --prompt standard \
+  --disks 7 \
+  --trials 1 \
+  --max-output-tokens 64000 \
+  --results-dir results
+```
+
+The command reads `OPENAI_API_KEY` from the environment or the repository's ignored `.env` file.
+An automated caller should supply these flags explicitly:
+
+| Flag | Meaning |
+| --- | --- |
+| `--model MODEL` | Exact OpenAI model ID to request. |
+| `--reasoning LEVEL` | `default`, `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`; support depends on the model. |
+| `--protocol paper\|interactive` | `paper` requests the complete move list in one API call; `interactive` makes one call per move. |
+| `--disks COUNT_OR_SET` | A count such as `7`, range such as `3-8`, or list such as `3,5,7`. |
+| `--prompt standard\|algorithm` | Paper prompt variant; defaults to `standard` and is ignored by the interactive protocol. |
+| `--trials N` | Independent attempts per configuration; defaults to `1`. |
+| `--max-output-tokens N` | Output-plus-reasoning limit per API request; defaults to `64000`. |
+| `--results-dir PATH` | Storage root; JSON files are written below `PATH/runs/`. |
+
+Repeat `--model`, `--reasoning`, `--protocol`, or `--prompt` to run their Cartesian product. `eval`
+is the backward-compatible matrix command and supplies defaults when those flags are omitted. Run
+`hanoi run --help` for the complete flag list and a cost-relevant explanation of each protocol.
+
+Exit status `0` means every requested API call completed and its result was saved; it does **not**
+mean the model solved the puzzle. Status `1` means an API call failed, and status `2` means the
+invocation, configuration, or credentials were invalid. To determine puzzle success, open the path
+printed by the command and inspect `validation.solved` and `validation.status` in the saved JSON.
+
 ## Results
 
 Each attempt is saved atomically under `results/runs/`. The local `results/` directory is ignored by
@@ -86,8 +128,8 @@ Older files named with only a run ID remain supported. Each JSON result contains
 - schema and prompt versions.
 
 Use **Browse saved results** in the interactive menu to see newest-first results, open a run's full
-configuration, outcome, token usage, error, and filename, or replay its moves. Automation-friendly
-subcommands remain available:
+configuration, outcome, token usage, error, and filename, or replay its moves. Additional
+automation-friendly subcommands are available:
 
 ```bash
 hanoi eval --protocol paper --model gpt-5.6-luna --reasoning medium --disks 3-8 --no-animate

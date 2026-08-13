@@ -62,6 +62,111 @@ REASONING_LEVELS = (
 )
 
 
+def _add_evaluation_arguments(
+    command: argparse.ArgumentParser,
+    *,
+    require_experiment: bool,
+    animate_default: bool,
+    allow_mock: bool,
+) -> None:
+    requirement = {"required": True} if require_experiment else {}
+    command.add_argument(
+        "--model",
+        action="append",
+        metavar="MODEL",
+        help=(
+            "OpenAI model ID; repeat or comma-separate to create a matrix"
+            + ("" if require_experiment else f" (default: {DEFAULT_MODEL})")
+        ),
+        **requirement,
+    )
+    command.add_argument(
+        "--reasoning",
+        action="append",
+        choices=REASONING_LEVELS,
+        help=(
+            "reasoning effort; repeat to create a matrix"
+            + ("" if require_experiment else " (default: medium)")
+        ),
+        **requirement,
+    )
+    command.add_argument(
+        "--disks",
+        default=None if require_experiment else "3-8",
+        required=require_experiment,
+        metavar="COUNT_OR_SET",
+        help=(
+            "one count or a set such as 7, 3-8, or 3,5,7"
+            + ("" if require_experiment else " (default: 3-8)")
+        ),
+    )
+    command.add_argument(
+        "--protocol",
+        action="append",
+        choices=("paper", "apple", "interactive"),
+        help=(
+            "paper is one API call returning the complete move list; "
+            "interactive is one API call per move; apple is the legacy paper alias"
+        ),
+        **requirement,
+    )
+    command.add_argument(
+        "--prompt",
+        action="append",
+        choices=("standard", "algorithm"),
+        help="paper prompt variant; repeat to compare (default: standard; ignored by interactive)",
+    )
+    command.add_argument(
+        "--trials",
+        type=int,
+        default=1,
+        help="independent attempts per configuration (default: 1)",
+    )
+    command.add_argument(
+        "--max-output-tokens",
+        type=int,
+        default=64_000,
+        help="maximum output and reasoning tokens per API request (default: 64000)",
+    )
+    command.add_argument(
+        "--move-budget-multiplier",
+        type=float,
+        default=2.0,
+        help="interactive move limit relative to the optimum (default: 2.0)",
+    )
+    command.add_argument(
+        "--animate",
+        action=argparse.BooleanOptionalAction,
+        default=animate_default,
+        help=f"animate returned moves (default: {'enabled' if animate_default else 'disabled'})",
+    )
+    command.add_argument(
+        "--delay",
+        type=float,
+        default=0.08,
+        help="seconds between animated moves (default: 0.08)",
+    )
+    command.add_argument(
+        "--results-dir",
+        type=Path,
+        default=Path("results"),
+        help="directory that will contain runs/*.json (default: results)",
+    )
+    if allow_mock:
+        command.add_argument(
+            "--mock",
+            choices=("optimal", "invalid", "incomplete"),
+            help="make deterministic local responses instead of API calls",
+        )
+    else:
+        command.set_defaults(mock=None)
+    command.add_argument(
+        "--allow-large",
+        action="store_true",
+        help="allow disk counts above 12 despite exponential output/call growth",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hanoi",
@@ -76,65 +181,45 @@ def build_parser() -> argparse.ArgumentParser:
     browse = subparsers.add_parser("browse", help="browse and open stored results")
     browse.add_argument("--results-dir", type=Path, default=Path("results"))
 
-    evaluate = subparsers.add_parser("eval", help="run an evaluation matrix")
-    evaluate.add_argument(
-        "--model",
-        action="append",
-        help=f"model ID; repeat or comma-separate (default: {DEFAULT_MODEL})",
+    run = subparsers.add_parser(
+        "run",
+        help="start a fully specified evaluation without prompts",
+        description=(
+            "Run a Towers of Hanoi evaluation without opening the menu or asking for input. "
+            "The model, reasoning effort, protocol, and disk count must be explicit. "
+            "After validation, potentially paid API calls begin immediately."
+        ),
+        epilog=(
+            "example:\n"
+            "  hanoi run --model gpt-5.6-luna --reasoning medium --protocol paper "
+            "--prompt standard --disks 7 --trials 1\n\n"
+            "API calls:\n"
+            "  paper       one call per model/reasoning/disk/prompt/trial configuration\n"
+            "  interactive up to move-budget-multiplier * (2^disks - 1) calls per trial\n\n"
+            "exit status:\n"
+            "  0  every requested API call completed and each result was saved; a puzzle may "
+            "still be unsolved\n"
+            "  1  an API call failed; the failure result was saved\n"
+            "  2  invalid arguments, configuration, or missing credentials"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    evaluate.add_argument(
-        "--reasoning",
-        action="append",
-        choices=REASONING_LEVELS,
-        help="reasoning effort; repeat for a matrix (default: medium)",
+    _add_evaluation_arguments(
+        run,
+        require_experiment=True,
+        animate_default=False,
+        allow_mock=False,
     )
-    evaluate.add_argument(
-        "--disks",
-        default="3-8",
-        help="one count or a set such as 7, 3-8, or 3,5,7 (default: 3-8)",
+
+    evaluate = subparsers.add_parser(
+        "eval",
+        help="run a non-interactive evaluation matrix using optional defaults",
     )
-    evaluate.add_argument(
-        "--protocol",
-        action="append",
-        choices=("paper", "apple", "interactive"),
-        help="paper is the one-call paper protocol; apple is its legacy alias",
-    )
-    evaluate.add_argument(
-        "--prompt",
-        action="append",
-        choices=("standard", "algorithm"),
-        help="Apple prompt variant; repeat to compare (default: standard)",
-    )
-    evaluate.add_argument("--trials", type=int, default=1, help="trials per configuration")
-    evaluate.add_argument(
-        "--max-output-tokens",
-        type=int,
-        default=64_000,
-        help="maximum output and reasoning tokens per request (default: 64000)",
-    )
-    evaluate.add_argument(
-        "--move-budget-multiplier",
-        type=float,
-        default=2.0,
-        help="interactive move budget relative to the optimum (default: 2.0)",
-    )
-    evaluate.add_argument(
-        "--animate",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="animate every returned move sequence (default: enabled)",
-    )
-    evaluate.add_argument("--delay", type=float, default=0.08, help="animation delay in seconds")
-    evaluate.add_argument("--results-dir", type=Path, default=Path("results"))
-    evaluate.add_argument(
-        "--mock",
-        choices=("optimal", "invalid", "incomplete"),
-        help="run without API calls using deterministic behavior",
-    )
-    evaluate.add_argument(
-        "--allow-large",
-        action="store_true",
-        help="allow disk counts above 12 despite exponential output/call growth",
+    _add_evaluation_arguments(
+        evaluate,
+        require_experiment=False,
+        animate_default=True,
+        allow_mock=True,
     )
 
     compare = subparsers.add_parser("compare", help="summarize stored results")
@@ -159,7 +244,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     console = Console()
     if args.command in (None, "menu"):
         return _menu(console)
-    if args.command == "eval":
+    if args.command in ("run", "eval"):
         return _eval(args, console)
     if args.command == "browse":
         return _browse_results(args, console)

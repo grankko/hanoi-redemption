@@ -5,7 +5,8 @@
 Hanoi Redemption evaluates whether OpenAI models can produce valid Towers of Hanoi solutions as
 complexity grows. Preserve the experiment, not merely a generic Hanoi solver. The primary user
 experience is the guided terminal interface opened by bare `hanoi`; subcommands exist for
-automation.
+automation. Use `hanoi run` for a prompt-free run with explicit experiment parameters; retain
+`hanoi eval` as the backward-compatible matrix command with defaults.
 
 Read `README.md` before making product changes. Inspect the working tree and preserve unrelated
 user changes.

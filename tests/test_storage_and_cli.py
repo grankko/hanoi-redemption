@@ -2,6 +2,7 @@ import json
 from io import StringIO
 from pathlib import Path
 
+import pytest
 from rich.console import Console
 
 from hanoi_redemption import cli
@@ -29,6 +30,51 @@ def test_paper_cli_defaults_through_the_reported_collapse_region() -> None:
     args = build_parser().parse_args(["eval", "--mock", "optimal"])
 
     assert args.disks == "3-8"
+
+
+def test_run_requires_explicit_experiment_parameters() -> None:
+    with pytest.raises(SystemExit) as error:
+        build_parser().parse_args(["run", "--model", "gpt-5.6-luna"])
+
+    assert error.value.code == 2
+
+
+def test_run_is_prompt_free_and_disables_animation_by_default(
+    monkeypatch, tmp_path: Path
+) -> None:
+    def unexpected_prompt(*args, **kwargs):
+        raise AssertionError("the non-interactive run command requested terminal input")
+
+    monkeypatch.setattr(cli.Prompt, "ask", unexpected_prompt)
+    monkeypatch.setattr(cli.IntPrompt, "ask", unexpected_prompt)
+    monkeypatch.setattr(cli.Confirm, "ask", unexpected_prompt)
+    monkeypatch.setattr(cli, "_openai_provider", lambda console: MockProvider())
+
+    exit_status = main(
+        [
+            "run",
+            "--model",
+            "gpt-5.6-luna",
+            "--reasoning",
+            "medium",
+            "--protocol",
+            "paper",
+            "--prompt",
+            "standard",
+            "--disks",
+            "3",
+            "--trials",
+            "1",
+            "--results-dir",
+            str(tmp_path),
+        ]
+    )
+
+    results = ResultStore(tmp_path).load_all()
+    assert exit_status == 0
+    assert len(results) == 1
+    assert results[0].config.model == "gpt-5.6-luna"
+    assert results[0].config.reasoning_effort == "medium"
 
 
 def test_bare_command_opens_menu(monkeypatch) -> None:
