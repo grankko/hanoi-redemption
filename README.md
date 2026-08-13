@@ -40,8 +40,7 @@ model-ID option. Lifecycle warnings are shown for known deprecated models.
 The application looks for an API key in this order:
 
 1. the `OPENAI_API_KEY` environment variable;
-2. `~/.config/explain/appsettings.json`; and
-3. `OPENAI_API_KEY` in the repository's ignored `.env` file.
+2. `OPENAI_API_KEY` in the repository's ignored `.env` file.
 
 You can start from `.env.example`. Keys are never written to benchmark results or printed by the
 application.

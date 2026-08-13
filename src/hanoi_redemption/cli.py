@@ -536,9 +536,7 @@ def _openai_provider(console: Console) -> OpenAIProvider | None:
     credentials = find_openai_credentials()
     if credentials is None:
         console.print("[bold red]No OpenAI API key was found.[/]")
-        console.print(
-            "Export OPENAI_API_KEY, configure Explain, or add it to an ignored project .env."
-        )
+        console.print("Export OPENAI_API_KEY or add it to the ignored project .env file.")
         return None
     try:
         provider = OpenAIProvider(api_key=credentials.api_key)

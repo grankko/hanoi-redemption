@@ -56,8 +56,9 @@ validation, and comparison language so they are easy to test.
   preserve unsupported combinations as recorded API errors.
 - The paper-era `o3-mini` option is historically useful but deprecated. Update or remove its warning
   when its availability changes; do not silently route it to another model.
-- Credential precedence is explicit environment, Explain config, then project `.env`. Never print,
-  persist, copy, or expose an API key. Do not inspect secret values during routine work.
+- Credential precedence is the `OPENAI_API_KEY` environment variable, then the project `.env`.
+  Do not search unrelated user configuration files. Never print, persist, copy, or expose an API
+  key, and do not inspect secret values during routine work.
 - Tests and ordinary verification must not make paid API calls. Use `--mock`. Make a real API call
   only when the user explicitly requests live verification; use the smallest meaningful run and
   report that a paid call was made.
