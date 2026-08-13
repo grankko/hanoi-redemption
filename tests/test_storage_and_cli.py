@@ -14,10 +14,10 @@ from hanoi_redemption.cli import (
     main,
     parse_disk_spec,
 )
-from hanoi_redemption.models import RunConfig
+from hanoi_redemption.models import ApiCall, RunConfig
 from hanoi_redemption.paper import PAPER_BASELINE, paper_comparison
 from hanoi_redemption.protocols import normalize_protocol, protocol_label
-from hanoi_redemption.providers import MockProvider
+from hanoi_redemption.providers import MockProvider, ProviderError
 from hanoi_redemption.storage import ResultStore
 from hanoi_redemption.visualization import replay
 
@@ -75,6 +75,64 @@ def test_run_is_prompt_free_and_disables_animation_by_default(
     assert len(results) == 1
     assert results[0].config.model == "gpt-5.6-luna"
     assert results[0].config.reasoning_effort == "medium"
+    assert results[0].config.max_output_tokens is None
+
+
+def test_request_timer_shows_elapsed_time() -> None:
+    output = StringIO()
+    console = Console(file=output, force_terminal=True, color_system=None)
+
+    with cli._request_timer(console):
+        pass
+
+    rendered = output.getvalue()
+    assert "Waiting for model response" in rendered
+    assert "elapsed 0:00:00" in rendered
+
+
+def test_incomplete_api_response_returns_failure_status_and_is_saved(
+    monkeypatch, tmp_path: Path
+) -> None:
+    class IncompleteProvider:
+        def solve(self, config):
+            raise ProviderError(
+                "output limit reached",
+                ApiCall(
+                    response_id="resp_partial",
+                    requested_model=config.model,
+                    actual_model=config.model,
+                    status="incomplete",
+                    latency_seconds=1,
+                ),
+                outcome_status="incomplete",
+            )
+
+    monkeypatch.setattr(cli, "_openai_provider", lambda console: IncompleteProvider())
+
+    exit_status = main(
+        [
+            "run",
+            "--model",
+            "gpt-5.6-sol",
+            "--reasoning",
+            "none",
+            "--protocol",
+            "paper",
+            "--prompt",
+            "standard",
+            "--disks",
+            "3",
+            "--trials",
+            "1",
+            "--results-dir",
+            str(tmp_path),
+        ]
+    )
+
+    result = ResultStore(tmp_path).load_all()[0]
+    assert exit_status == 1
+    assert result.validation.status == "incomplete"
+    assert result.api_calls[0].response_id == "resp_partial"
 
 
 def test_bare_command_opens_menu(monkeypatch) -> None:

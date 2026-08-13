@@ -45,10 +45,23 @@ class BenchmarkRunner:
             else:
                 moves, explanations, calls, validation = self._run_interactive(config)
         except ProviderError as exc:
-            moves = []
+            moves = exc.partial_moves
             explanations = []
             calls = [exc.call] if exc.call else []
-            validation = _error_report(config.disks, "api_error", str(exc))
+            if moves:
+                validation = evaluate_moves(config.disks, moves)
+                if validation.status != "invalid_move":
+                    validation.status = exc.outcome_status
+                validation.solved = False
+                validation.optimal = False
+                validation.efficiency_percent = None
+                validation.error = str(exc)
+            else:
+                validation = _error_report(
+                    config.disks,
+                    exc.outcome_status,
+                    str(exc),
+                )
         except Exception as exc:
             moves = []
             explanations = []
@@ -90,7 +103,7 @@ class BenchmarkRunner:
                 if exc.call:
                     calls.append(exc.call)
                 report = evaluate_moves(config.disks, moves, move_budget=budget)
-                report.status = "api_error"
+                report.status = exc.outcome_status
                 report.error = str(exc)
                 return moves, explanations, calls, report
             decision = response.value

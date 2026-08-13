@@ -9,10 +9,13 @@ import statistics
 import sys
 from collections import defaultdict
 from collections.abc import Sequence
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.prompt import Confirm as RichConfirm
 from rich.prompt import IntPrompt as RichIntPrompt
 from rich.prompt import Prompt as RichPrompt
@@ -87,6 +90,37 @@ class Confirm(_QuitPromptMixin, RichConfirm):
     pass
 
 
+class _TimedProvider:
+    """Add terminal request timing without coupling providers to Rich."""
+
+    def __init__(self, provider: Any, console: Console):
+        self.provider = provider
+        self.console = console
+
+    def solve(self, config: RunConfig):
+        with _request_timer(self.console):
+            return self.provider.solve(config)
+
+    def next_move(self, config: RunConfig, game: Any, turn: int, moves: list):
+        with _request_timer(self.console):
+            return self.provider.next_move(config, game, turn, moves)
+
+
+@contextmanager
+def _request_timer(console: Console):
+    with Progress(
+        SpinnerColumn(style="cyan"),
+        TextColumn("Waiting for model response"),
+        TextColumn("[dim]elapsed"),
+        TimeElapsedColumn(),
+        console=console,
+        refresh_per_second=4,
+        transient=True,
+    ) as progress:
+        progress.add_task("request", total=None)
+        yield
+
+
 def _add_evaluation_arguments(
     command: argparse.ArgumentParser,
     *,
@@ -146,12 +180,6 @@ def _add_evaluation_arguments(
         type=int,
         default=1,
         help="independent attempts per configuration (default: 1)",
-    )
-    command.add_argument(
-        "--max-output-tokens",
-        type=int,
-        default=64_000,
-        help="maximum output and reasoning tokens per API request (default: 64000)",
     )
     command.add_argument(
         "--move-budget-multiplier",
@@ -224,7 +252,7 @@ def build_parser() -> argparse.ArgumentParser:
             "exit status:\n"
             "  0  every requested API call completed and each result was saved; a puzzle may "
             "still be unsolved\n"
-            "  1  an API call failed; the failure result was saved\n"
+            "  1  an API call failed or ended incomplete; the result was saved\n"
             "  2  invalid arguments, configuration, or missing credentials"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -412,7 +440,6 @@ def _interactive_eval(console: Console) -> int:
             protocol=[protocol],
             prompt=[prompt_variant],
             trials=trials,
-            max_output_tokens=64_000,
             move_budget_multiplier=2.0,
             animate=animate,
             delay=0.08,
@@ -560,8 +587,8 @@ def _eval(args: argparse.Namespace, console: Console) -> int:
     if args.trials < 1:
         console.print("[bold red]--trials must be at least 1[/]")
         return 2
-    if args.max_output_tokens < 1 or args.move_budget_multiplier < 1 or args.delay < 0:
-        console.print("[bold red]token limits must be positive; multiplier >= 1; delay >= 0[/]")
+    if args.move_budget_multiplier < 1 or args.delay < 0:
+        console.print("[bold red]multiplier must be >= 1; delay must be >= 0[/]")
         return 2
     if max(disks) > 12 and not args.allow_large:
         console.print(
@@ -581,14 +608,13 @@ def _eval(args: argparse.Namespace, console: Console) -> int:
         protocols=protocols,
         prompts=prompts,
         trials=args.trials,
-        max_output_tokens=args.max_output_tokens,
         move_budget_multiplier=args.move_budget_multiplier,
     )
 
     provider = MockProvider(args.mock) if args.mock else _openai_provider(console)
     if provider is None:
         return 2
-    runner = BenchmarkRunner(provider)
+    runner = BenchmarkRunner(_TimedProvider(provider, console))
     store = ResultStore(args.results_dir)
 
     max_calls = sum(
@@ -606,15 +632,15 @@ def _eval(args: argparse.Namespace, console: Console) -> int:
         )
     )
 
-    had_api_error = False
+    had_request_error = False
     for index, config in enumerate(configs, start=1):
         label = (
             f"[{index}/{len(configs)}] {config.model} · {config.reasoning_effort} · "
             f"{protocol_label(config.protocol)} · {config.disks} disks · trial {config.trial}"
         )
-        with console.status(label, spinner="dots"):
-            result = runner.run(config)
-            path = store.save(result)
+        console.print(f"[bold]{label}[/]")
+        result = runner.run(config)
+        path = store.save(result)
         style = "green" if result.validation.solved else "red"
         console.print(f"[{style}]{result_summary(result)}[/] · {path}")
         console.print(f"[dim]Paper comparison:[/] {paper_comparison(result)}")
@@ -622,8 +648,11 @@ def _eval(args: argparse.Namespace, console: Console) -> int:
             console.print(
                 Panel(result.validation.error, title="Failure details", border_style="red")
             )
-        if result.validation.status == "api_error":
-            had_api_error = True
+        request_failed = result.validation.status == "api_error" or any(
+            call.status != "completed" for call in result.api_calls
+        )
+        if request_failed:
+            had_request_error = True
             authentication_failed = (
                 result.validation.error
                 and "authentication failed" in result.validation.error.lower()
@@ -639,7 +668,7 @@ def _eval(args: argparse.Namespace, console: Console) -> int:
         if args.animate and result.moves:
             replay(result, console=console, delay=args.delay)
 
-    return 1 if had_api_error else 0
+    return 1 if had_request_error else 0
 
 
 def _openai_provider(console: Console) -> OpenAIProvider | None:
@@ -665,7 +694,6 @@ def _build_configs(
     protocols: list[str],
     prompts: list[str],
     trials: int,
-    max_output_tokens: int,
     move_budget_multiplier: float,
 ) -> list[RunConfig]:
     configs: list[RunConfig] = []
@@ -680,7 +708,7 @@ def _build_configs(
                     trial=trial,
                     protocol=protocol,
                     prompt_variant=prompt_variant,
-                    max_output_tokens=max_output_tokens,
+                    max_output_tokens=None,
                     move_budget_multiplier=move_budget_multiplier,
                 )
             )

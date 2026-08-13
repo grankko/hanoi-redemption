@@ -56,7 +56,7 @@ class RunConfig(BaseModel):
     trial: int = Field(ge=1)
     protocol: ProtocolName
     prompt_variant: PromptVariant = "standard"
-    max_output_tokens: int = Field(gt=0)
+    max_output_tokens: int | None = Field(default=None, gt=0)
     move_budget_multiplier: float = Field(ge=1.0)
     prompt_version: str = "apple-hanoi-v1"
 

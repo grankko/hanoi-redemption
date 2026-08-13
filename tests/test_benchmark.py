@@ -43,6 +43,37 @@ def test_incomplete_apple_response_is_not_an_api_error() -> None:
     assert result.validation.valid_moves > 0
 
 
+def test_output_limited_apple_response_keeps_partial_game_and_call_usage() -> None:
+    partial_moves = [
+        HanoiMove(disk=1, source=0, destination=2),
+        HanoiMove(disk=2, source=0, destination=1),
+    ]
+
+    class OutputLimitedProvider:
+        def solve(self, config):
+            raise ProviderError(
+                "output limit reached",
+                ApiCall(
+                    response_id="resp_partial",
+                    requested_model=config.model,
+                    actual_model=config.model,
+                    status="incomplete",
+                    latency_seconds=1,
+                ),
+                outcome_status="incomplete",
+                partial_moves=partial_moves,
+            )
+
+    result = BenchmarkRunner(OutputLimitedProvider()).run(config("apple"))
+
+    assert result.validation.status == "incomplete"
+    assert result.validation.solved is False
+    assert result.validation.valid_moves == 2
+    assert result.moves == partial_moves
+    assert result.api_calls[0].response_id == "resp_partial"
+    assert result.api_calls[0].status == "incomplete"
+
+
 def test_result_accumulates_usage_without_special_cases() -> None:
     result = BenchmarkRunner(MockProvider("optimal")).run(config("apple"))
 
@@ -83,3 +114,25 @@ def test_interactive_api_error_keeps_partial_game_and_call_history() -> None:
     assert result.moves == [HanoiMove(disk=1, source=0, destination=2)]
     assert len(result.api_calls) == 2
     assert result.api_calls[-1].status == "error"
+
+
+def test_interactive_output_limit_is_not_labeled_as_api_error() -> None:
+    class OutputLimitedProvider:
+        def next_move(self, config, game, turn, moves):
+            raise ProviderError(
+                "output limit reached",
+                ApiCall(
+                    response_id="resp_partial",
+                    requested_model=config.model,
+                    actual_model=config.model,
+                    status="incomplete",
+                    latency_seconds=1,
+                ),
+                outcome_status="incomplete",
+            )
+
+    result = BenchmarkRunner(OutputLimitedProvider()).run(config("interactive"))
+
+    assert result.validation.status == "incomplete"
+    assert result.validation.error == "output limit reached"
+    assert result.api_calls[0].status == "incomplete"

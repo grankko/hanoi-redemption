@@ -28,6 +28,7 @@ Bare `hanoi` opens the guided interface. From there you can:
 - choose a model and a model-compatible reasoning level;
 - select disk counts, trial count, and benchmark protocol;
 - see the maximum number of paid API calls before confirming;
+- see an elapsed timer while each model request is running;
 - watch returned solutions play in the terminal;
 - browse saved runs, open their full details, compare them, or replay a game; and
 - preview the exact prompt without calling the API.
@@ -82,7 +83,6 @@ hanoi run \
   --prompt standard \
   --disks 7 \
   --trials 1 \
-  --max-output-tokens 64000 \
   --results-dir results
 ```
 
@@ -97,7 +97,6 @@ An automated caller should supply these flags explicitly:
 | `--disks COUNT_OR_SET` | A count such as `7`, range such as `3-8`, or list such as `3,5,7`. |
 | `--prompt standard\|algorithm` | Paper prompt variant; defaults to `standard` and is ignored by the interactive protocol. |
 | `--trials N` | Independent attempts per configuration; defaults to `1`. |
-| `--max-output-tokens N` | Output-plus-reasoning limit per API request; defaults to `64000`. |
 | `--results-dir PATH` | Storage root; JSON files are written below `PATH/runs/`. |
 
 Repeat `--model`, `--reasoning`, `--protocol`, or `--prompt` to run their Cartesian product. `eval`
@@ -105,9 +104,10 @@ is the backward-compatible matrix command and supplies defaults when those flags
 `hanoi run --help` for the complete flag list and a cost-relevant explanation of each protocol.
 
 Exit status `0` means every requested API call completed and its result was saved; it does **not**
-mean the model solved the puzzle. Status `1` means an API call failed, and status `2` means the
-invocation, configuration, or credentials were invalid. To determine puzzle success, open the path
-printed by the command and inspect `validation.solved` and `validation.status` in the saved JSON.
+mean the model solved the puzzle. Status `1` means an API call failed or its response ended before
+completion, and status `2` means the invocation, configuration, or credentials were invalid. To
+determine puzzle success, open the path printed by the command and inspect `validation.solved` and
+`validation.status` in the saved JSON.
 
 ## Results
 
@@ -149,12 +149,12 @@ The Apple protocol needs one API call per trial. Interactive play may need up to
 move count, so its call count grows exponentially. The app shows this upper bound before an
 interactive run starts.
 
-The default output budget is 64,000 tokens, matching the scale used in the paper. Disk counts above
-12 require explicit command-line opt-in. This recreates the paper's core puzzle test, not every
-experimental control: the paper generated 25 samples per puzzle setting and extracted move lists
-from free-form responses, while this project uses schema-constrained output and lets you choose the
-model, reasoning setting, and number of trials. OpenAI models also do not expose their private
-reasoning traces through this application.
+The application does not impose its own output-token limit; the selected model's API limit applies.
+Disk counts above 12 require explicit command-line opt-in. This recreates the paper's core puzzle
+test, not every experimental control: the paper generated 25 samples per puzzle setting and
+extracted move lists from free-form responses, while this project uses schema-constrained output and
+lets you choose the model, reasoning setting, and number of trials. OpenAI models also do not expose
+their private reasoning traces through this application.
 
 ## Development
 
