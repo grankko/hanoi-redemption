@@ -79,7 +79,10 @@ def test_paper_comparison_marks_collapse_and_interactive_protocol() -> None:
     apple_result = BenchmarkRunner(MockProvider()).run(apple_config)
     interactive_result = BenchmarkRunner(MockProvider()).run(interactive_config)
 
-    assert "collapse region" in paper_comparison(apple_result)
+    assert paper_comparison(apple_result) == (
+        "Notable: this model solved an 8+ disk instance, where the paper reported "
+        "near-zero accuracy."
+    )
     assert "Not directly comparable" in paper_comparison(interactive_result)
     assert "7–8 disks" in PAPER_BASELINE
 

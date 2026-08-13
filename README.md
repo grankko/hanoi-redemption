@@ -108,9 +108,11 @@ move count, so its call count grows exponentially. The app shows this upper boun
 interactive run starts.
 
 The default output budget is 64,000 tokens, matching the scale used in the paper. Disk counts above
-12 require explicit command-line opt-in. Results are directional rather than an exact paper
-replication: this project uses current OpenAI APIs and structured outputs, does not expose private
-reasoning traces, and lets the user choose models and reasoning settings.
+12 require explicit command-line opt-in. This recreates the paper's core puzzle test, not every
+experimental control: the paper generated 25 samples per puzzle setting and extracted move lists
+from free-form responses, while this project uses schema-constrained output and lets you choose the
+model, reasoning setting, and number of trials. OpenAI models also do not expose their private
+reasoning traces through this application.
 
 ## Development
 

@@ -34,10 +34,10 @@ def paper_comparison(result: BenchmarkResult) -> str:
         return "Consistent with the paper's 5–7 disk transition region, where failures increased."
     if solved:
         return (
-            "Notable: this pass is in the paper's reported collapse region (8+ disks). "
-            "Treat it as directional because the model and API setup differ."
+            "Notable: this model solved an 8+ disk instance, where the paper reported "
+            "near-zero accuracy."
         )
     return (
-        "Consistent with the paper's reported collapse region (8+ disks), though the model and "
-        "API setup differ."
+        "Falls within the paper's reported collapse region (8+ disks), where its tested models "
+        "had near-zero accuracy."
     )
