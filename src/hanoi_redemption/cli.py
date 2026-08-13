@@ -13,7 +13,9 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, IntPrompt, Prompt
+from rich.prompt import Confirm as RichConfirm
+from rich.prompt import IntPrompt as RichIntPrompt
+from rich.prompt import Prompt as RichPrompt
 from rich.table import Table
 
 from .benchmark import BenchmarkRunner
@@ -60,6 +62,29 @@ REASONING_LEVELS = (
     "xhigh",
     "max",
 )
+
+
+class QuitRequested(Exception):
+    """Raised when the user enters q at an interactive prompt."""
+
+
+class _QuitPromptMixin:
+    def process_response(self, value: str):
+        if value.strip().casefold() == "q":
+            raise QuitRequested
+        return super().process_response(value)
+
+
+class Prompt(_QuitPromptMixin, RichPrompt):
+    pass
+
+
+class IntPrompt(_QuitPromptMixin, RichIntPrompt):
+    pass
+
+
+class Confirm(_QuitPromptMixin, RichConfirm):
+    pass
 
 
 def _add_evaluation_arguments(
@@ -242,19 +267,23 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     console = Console()
-    if args.command in (None, "menu"):
-        return _menu(console)
-    if args.command in ("run", "eval"):
-        return _eval(args, console)
-    if args.command == "browse":
-        return _browse_results(args, console)
-    if args.command == "compare":
-        return _compare(args, console)
-    if args.command == "replay":
-        return _replay(args, console)
-    if args.command == "prompt":
-        return _prompt(args, console)
-    return 2
+    try:
+        if args.command in (None, "menu"):
+            return _menu(console)
+        if args.command in ("run", "eval"):
+            return _eval(args, console)
+        if args.command == "browse":
+            return _browse_results(args, console)
+        if args.command == "compare":
+            return _compare(args, console)
+        if args.command == "replay":
+            return _replay(args, console)
+        if args.command == "prompt":
+            return _prompt(args, console)
+        return 2
+    except (QuitRequested, EOFError, KeyboardInterrupt):
+        console.print("\nGoodbye.")
+        return 0
 
 
 def _menu(console: Console) -> int:
@@ -280,23 +309,19 @@ def _menu(console: Console) -> int:
             "[dim]— choose a sample disk count[/]"
         )
         console.print("[bold]q[/]  Quit")
-        try:
-            choice = Prompt.ask("\nChoose", choices=("1", "2", "3", "4", "q"), default="1")
-            if choice == "1":
-                _interactive_eval(console)
-            elif choice == "2":
-                _browse_results(argparse.Namespace(results_dir=Path("results")), console)
-            elif choice == "3":
-                compare_args = argparse.Namespace(
-                    results_dir=Path("results"), model=None, protocol=None
-                )
-                _compare(compare_args, console)
-            elif choice == "4":
-                _interactive_prompt(console)
-            else:
-                return 0
-        except (EOFError, KeyboardInterrupt):
-            console.print("\nGoodbye.")
+        choice = Prompt.ask("\nChoose", choices=("1", "2", "3", "4", "q"), default="1")
+        if choice == "1":
+            _interactive_eval(console)
+        elif choice == "2":
+            _browse_results(argparse.Namespace(results_dir=Path("results")), console)
+        elif choice == "3":
+            compare_args = argparse.Namespace(
+                results_dir=Path("results"), model=None, protocol=None
+            )
+            _compare(compare_args, console)
+        elif choice == "4":
+            _interactive_prompt(console)
+        else:
             return 0
 
 

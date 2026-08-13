@@ -95,6 +95,21 @@ def test_main_menu_explains_where_model_selection_lives(monkeypatch) -> None:
     assert "choose a sample disk count" in rendered
 
 
+@pytest.mark.parametrize("prompt_type", (cli.Prompt, cli.IntPrompt, cli.Confirm))
+def test_q_exits_every_interactive_prompt_type(prompt_type) -> None:
+    with pytest.raises(cli.QuitRequested):
+        prompt_type.ask("Test prompt", stream=StringIO("q\n"))
+
+
+def test_nested_q_exits_the_application(monkeypatch) -> None:
+    def quit_from_nested_menu(console) -> int:
+        raise cli.QuitRequested
+
+    monkeypatch.setattr(cli, "_menu", quit_from_nested_menu)
+
+    assert main([]) == 0
+
+
 def test_menu_includes_current_and_paper_era_models() -> None:
     models = {model for model, _, _ in OPENAI_MODELS}
 
@@ -287,3 +302,29 @@ def test_renderer_handles_invalid_sequence_without_crashing() -> None:
 
     assert "INVALID" in output.getvalue()
     assert "INVALID_MOVE" in output.getvalue()
+
+
+def test_replay_can_skip_to_the_final_board() -> None:
+    config = RunConfig(
+        model="mock-optimal",
+        reasoning_effort="none",
+        disks=4,
+        trial=1,
+        protocol="apple",
+        max_output_tokens=64_000,
+        move_budget_multiplier=2.0,
+    )
+    result = BenchmarkRunner(MockProvider()).run(config)
+    output = StringIO()
+
+    replay(
+        result,
+        console=Console(file=output, force_terminal=False),
+        delay=0,
+        skip_requested=lambda: True,
+    )
+
+    rendered = output.getvalue()
+    assert "Move 15/15" in rendered
+    assert "animation skipped" in rendered
+    assert "Result: PASS" in rendered
